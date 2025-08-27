@@ -1,4 +1,3 @@
-import React from "react";
 import { Stack, Text, Button, HStack } from "@chakra-ui/react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -29,7 +28,7 @@ const HeroPage = () => {
         Choose a blockchain to get started.
       </Text>
 
-      <HStack mt={[2, 4, 6]} spacing={[4, 6, 8]}>
+      <HStack mt={[2, 4, 6]}>
         <Link to="/solana" state={{ selectedWallet: "Solana",fromHome:true }}>
           <Button
             w="20"

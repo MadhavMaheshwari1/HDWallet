@@ -1,16 +1,9 @@
-import React from "react";
 import { SiEthereum } from "react-icons/si";
 import { Box, Text, Switch, HStack } from "@chakra-ui/react";
 import { Sun, Moon } from "lucide-react";
-import { Link } from "react-router-dom";
-import {
-  ColorModeButton,
-  DarkMode,
-  LightMode,
-  useColorMode,
-  useColorModeValue,
-} from "@/components/ui/color-mode";
-import { motion } from "framer-motion";
+import { Link as ChakraLink } from "@chakra-ui/react";
+import { Link as RouterLink } from "react-router-dom";
+import {useColorMode,useColorModeValue} from "@/components/ui/color-mode";
 
 const Navbar = () => {
   const { colorMode, toggleColorMode } = useColorMode();
@@ -29,15 +22,15 @@ const Navbar = () => {
           gap={1}
         >
           <SiEthereum size={40} color={themeColor} />
-          <Text
-            as={Link}
+          <ChakraLink
+            as={RouterLink}
             to="/"
             fontWeight="bold"
             mt="-1"
             fontSize={["2xl", "2xl", "3xl", "4xl"]}
           >
             Nidhi
-          </Text>
+          </ChakraLink>
         </Box>
         <Box
           rounded="4xl"

@@ -6,15 +6,17 @@ import { Box } from "@chakra-ui/react";
 const Solana = () => {
   const location = useLocation();
   const wallet = location.state?.selectedWallet;
-  const fromHome = location.state?.fromHome;
 
   useEffect(() => {
-    if (wallet && fromHome) {
+    if (wallet) {
       toaster.create({
         title: `${wallet} Wallet selected`,
         description: "Please generate a wallet to continue.",
       });
     }
+
+    window.history.replaceState({}, document.title);
+
   }, [wallet]);
 
   return <Box>Solana<Toaster /></Box>;
