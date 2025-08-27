@@ -15,20 +15,20 @@ const Navbar = () => {
       <HStack align="center">
         <Box
           w="fit-content"
-          h="100px"
+          h="70px"
           bg=""
           display="flex"
           alignItems="center"
           justifyContent="start"
           gap={1}
         >
-          <SiEthereum size={40} color={themeColor} />
+          <SiEthereum size={30} color={themeColor} />
           <ChakraRouterLink
             as={RouterLink}
             to="/"
             fontWeight="bold"
-            mt="-1"
-            fontSize={["2xl", "2xl", "3xl", "4xl"]}
+            mt="0"
+            fontSize={["2xl", "2xl", "3xl", "3xl"]}
           >
             Nidhi
           </ChakraRouterLink>
@@ -37,8 +37,8 @@ const Navbar = () => {
           rounded="4xl"
           border={
             themeColor === "light"
-              ? "2px solid rgba(0, 0, 0, 0.28)"
-              : "2px solid rgba(255, 255, 255, 0.27)"
+              ? "1px solid rgba(0, 0, 0, 0.28)"
+              : "1px solid rgba(255, 255, 255, 0.46)"
           }
           bg={
             themeColor === "light"
@@ -47,19 +47,18 @@ const Navbar = () => {
           }
           px="2"
           height="30px"
-          m="3"
-          mt="3"
+          ml="1"
         >
-          <Text fontSize="lg" fontWeight="bold" color={themeColor}>
+          <Text fontSize="md" fontWeight="bold" color={themeColor} py={0.5}>
             v1.3
           </Text>
         </Box>
       </HStack>
       <HStack justify="space-evenly" align="center" mt="-1">
         <HStack>
-          <Sun color={colorMode === "dark" ? "gray" : "black"} size={32} />
+          <Sun color={colorMode === "dark" ? "gray" : "black"} size={26} />
           <Switch.Root
-            size="lg"
+            size="md"
             checked={colorMode === "dark"}
             onCheckedChange={toggleColorMode}
             colorScheme="teal"
@@ -72,7 +71,7 @@ const Navbar = () => {
           </Switch.Root>
         </HStack>
         <Box mt="-0.5" ml="-2">
-          <Moon color={colorMode === "dark" ? "white" : "gray"} size={28} />
+          <Moon color={colorMode === "dark" ? "white" : "gray"} size={22} />
         </Box>
       </HStack>
     </HStack>

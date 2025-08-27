@@ -16,11 +16,11 @@ const HeroPage = () => {
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
-      <Text fontSize={["4xl", "6xl", "6xl", "6xl"]} fontWeight="bold">
+      <Text fontSize={["3xl", "4xl", "4xl", "5xl"]} fontWeight="bold">
         Nidhi supports multiple blockchains
       </Text>
       <Text
-        fontSize={["2xl", "3xl", "3xl", "3xl"]}
+        fontSize={["xl", "xl", "2xl", "2xl"]}
         fontWeight="semibold"
         color={themeColor}
         mt="-2"
@@ -28,13 +28,13 @@ const HeroPage = () => {
         Choose a blockchain to get started.
       </Text>
 
-      <HStack mt={[2, 4, 6]}>
-        <Link to="/solana" state={{ selectedWallet: "Solana",fromHome:true }}>
+      <HStack mt={[1, 2, 2]}>
+        <Link to="/solana" state={{ selectedWallet: "Solana" }}>
           <Button
-            w="20"
-            fontSize={["sm", "sm", "xl", "xl"]}
-            py={[2, 6, 8, 8]}
-            px={[2, 10, 14, 20]}
+            w="8"
+            fontSize={["sm", "sm", "md", "md"]}
+            py={[4, 4, 6, 6]}
+            px={[8, 8, 10, 10]}
             rounded="xl"
             fontWeight="thin"
           >
@@ -42,12 +42,12 @@ const HeroPage = () => {
           </Button>
         </Link>
 
-        <Link to="/ethereum" state={{ selectedWallet: "Ethereum",fromHome:true }}>
+        <Link to="/ethereum" state={{ selectedWallet: "Ethereum" }}>
           <Button
-            w="20"
-            fontSize={["sm", "sm", "xl", "xl"]}
-            py={[2, 6, 8, 8]}
-            px={[2, 10, 14, 20]}
+            w="8"
+            fontSize={["sm", "sm", "md", "md"]}
+            py={[4, 4, 6, 6]}
+            px={[10, 10, 12, 12]}
             rounded="xl"
             fontWeight="thin"
           >
