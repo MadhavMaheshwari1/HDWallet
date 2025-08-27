@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { toaster,Toaster } from "@/components/ui/toaster";
 import { Box } from "@chakra-ui/react";

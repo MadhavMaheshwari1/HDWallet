@@ -1,13 +1,14 @@
 import { SiEthereum } from "react-icons/si";
 import { Box, Text, Switch, HStack } from "@chakra-ui/react";
 import { Sun, Moon } from "lucide-react";
-import { Link as ChakraLink } from "@chakra-ui/react";
+import { chakra } from "@chakra-ui/react";
 import { Link as RouterLink } from "react-router-dom";
 import {useColorMode,useColorModeValue} from "@/components/ui/color-mode";
 
 const Navbar = () => {
   const { colorMode, toggleColorMode } = useColorMode();
   const themeColor = useColorModeValue("light", "dark");
+  const ChakraRouterLink = chakra(RouterLink);
 
   return (
     <HStack justify={"space-between"} w={"100%"} p={4}>
@@ -22,7 +23,7 @@ const Navbar = () => {
           gap={1}
         >
           <SiEthereum size={40} color={themeColor} />
-          <ChakraLink
+          <ChakraRouterLink
             as={RouterLink}
             to="/"
             fontWeight="bold"
@@ -30,7 +31,7 @@ const Navbar = () => {
             fontSize={["2xl", "2xl", "3xl", "4xl"]}
           >
             Nidhi
-          </ChakraLink>
+          </ChakraRouterLink>
         </Box>
         <Box
           rounded="4xl"
