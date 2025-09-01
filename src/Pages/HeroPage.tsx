@@ -1,12 +1,30 @@
 import { Stack, Text, Button, HStack } from "@chakra-ui/react";
-import { Link } from "react-router-dom";
+import { Link} from "react-router-dom";
 import { motion } from "framer-motion";
 import { useColorModeValue } from "@/components/ui/color-mode";
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
-const MotionStack = motion(Stack);
+const MotionStack = motion.create(Stack);
 
 const HeroPage = () => {
   const themeColor = useColorModeValue("gray.800", "gray.300");
+  const wallets: WalletsMap = JSON.parse(
+    localStorage.getItem("wallets") || "{}"
+  );
+
+  const navigate = useNavigate(); 
+
+  useEffect(() => {
+    if (Object.keys(wallets).length !== 0) {
+      Object.keys(wallets).forEach((key) => {
+        if (wallets[key].mnemonic.length !== 0) {
+          console.log("HI", key);
+          navigate(`/${key}`);
+        }
+      });
+    }
+  }, []);
 
   return (
     <MotionStack
@@ -29,7 +47,7 @@ const HeroPage = () => {
       </Text>
 
       <HStack mt={[1, 2, 2]}>
-        <Link to="/solana" state={{ selectedWallet: "Solana" }}>
+        <Link to="/solana">
           <Button
             w="8"
             fontSize={["sm", "sm", "md", "md"]}
@@ -42,7 +60,7 @@ const HeroPage = () => {
           </Button>
         </Link>
 
-        <Link to="/ethereum" state={{ selectedWallet: "Ethereum" }}>
+        <Link to="/ethereum">
           <Button
             w="8"
             fontSize={["sm", "sm", "md", "md"]}
