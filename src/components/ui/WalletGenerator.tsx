@@ -6,7 +6,10 @@ import { Keypair } from "@solana/web3.js";
 import { mnemonicToSeedSync } from "bip39";
 import React, { useState, useEffect } from "react";
 import * as ed25519 from "ed25519-hd-key";
+import { Card } from "@chakra-ui/react";
 import { motion } from "framer-motion";
+import { Grid2x2 } from "lucide-react";
+import { List } from "lucide-react";
 import {
   SimpleGrid,
   Box,
@@ -70,16 +73,6 @@ const dialog = createOverlay<DialogProps>((props) => {
               )}
               {content}
             </Dialog.Body>
-            <Dialog.Footer>
-              <HStack justifyContent="end">
-                <Button rounded="lg" onClick={() => dialog.close("a")}>
-                  Cancel
-                </Button>
-                <Button rounded="lg" colorScheme="red">
-                  Delete
-                </Button>
-              </HStack>
-            </Dialog.Footer>
           </Dialog.Content>
         </Dialog.Positioner>
       </Portal>
@@ -92,12 +85,13 @@ interface WalletGeneratorProps {
 }
 
 const WalletGenerator: React.FC<WalletGeneratorProps> = ({ mnemonicValue }) => {
+  const [viewMode, setViewMode] = useState<"list" | "card">("list");
   const params = useParams();
   const router = useRouter();
   const walletType =
     typeof params.walletType === "string" ? params.walletType : "";
   const [visible, setVisible] = useState<Record<string, boolean[]>>({});
-  const bgColor = useColorModeValue("#e2e2e2b8", "#3b3b3ba0");
+  const bgColor = useColorModeValue("#e2e2e2b8", "oklch(22% 0 0)");
   const bgHoverColor = useColorModeValue("#c7c7c7b8", "#707070a0");
   const textColor = useColorModeValue("gray.800", "gray.400");
   const storedWallets: WalletsMap =
@@ -175,17 +169,25 @@ const WalletGenerator: React.FC<WalletGeneratorProps> = ({ mnemonicValue }) => {
     localStorage.setItem("wallets", JSON.stringify(storedWallets));
   };
 
-  const handleWalletDeletion = (publicKey: string) => {
+  const handleWalletDeletion = (publicKey: string, allClear: boolean) => {
+    const storedWallets: WalletsMap =
+      typeof window !== "undefined"
+        ? JSON.parse(localStorage.getItem("wallets") || "{}")
+        : {};
+
+    if (allClear) {
+      delete storedWallets[walletType ?? "solana"];
+      localStorage.setItem("wallets", JSON.stringify(storedWallets));
+      router.push("/");
+      return;
+    }
+
     const currWallet = wallets.wallet.filter(
       (val) => val.publicKey !== publicKey
     );
     setWallets({ mnemonic: mnemonicValue, wallet: currWallet });
 
     if (typeof window !== "undefined") {
-      const storedWallets: WalletsMap = JSON.parse(
-        localStorage.getItem("wallets") || "{}"
-      );
-
       if (currWallet.length > 0) {
         storedWallets[walletType ?? "solana"] = {
           mnemonic: mnemonicValue,
@@ -195,7 +197,6 @@ const WalletGenerator: React.FC<WalletGeneratorProps> = ({ mnemonicValue }) => {
         delete storedWallets[walletType ?? "solana"];
         router.push("/");
       }
-
       localStorage.setItem("wallets", JSON.stringify(storedWallets));
     }
   };
@@ -207,13 +208,13 @@ const WalletGenerator: React.FC<WalletGeneratorProps> = ({ mnemonicValue }) => {
     }
 
     const storedWallets: WalletsMap =
-    typeof window !== "undefined"
-      ? JSON.parse(localStorage.getItem("wallets") || "{}")
-      : {};
+      typeof window !== "undefined"
+        ? JSON.parse(localStorage.getItem("wallets") || "{}")
+        : {};
 
     if (!storedWallets[walletType ?? "solana"]?.wallet?.length) {
-    handleWalletGeneration();
-  }
+      handleWalletGeneration();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [walletType]);
 
@@ -342,7 +343,7 @@ const WalletGenerator: React.FC<WalletGeneratorProps> = ({ mnemonicValue }) => {
               href={`/${val}`}
               style={{
                 fontWeight: val === walletType ? "bold" : "normal",
-                fontSize: val === walletType ? "1.5rem" : "1rem",
+                fontSize: val === walletType ? "1.5rem" : "0.75rem",
                 textDecoration: val === walletType ? "underline" : "none",
                 cursor: "pointer",
               }}
@@ -353,6 +354,15 @@ const WalletGenerator: React.FC<WalletGeneratorProps> = ({ mnemonicValue }) => {
         </HStack>
 
         <HStack>
+          <Button
+            onClick={() =>
+              setViewMode((prev) => (prev === "list" ? "card" : "list"))
+            }
+            color={useColorModeValue("black", "white")}
+            bg="none"
+          >
+            {viewMode === "list" ? <List /> : <Grid2x2 />}
+          </Button>
           <Button onClick={handleWalletGeneration}>Add wallet</Button>
           <Button
             bg={"red.700"}
@@ -363,6 +373,23 @@ const WalletGenerator: React.FC<WalletGeneratorProps> = ({ mnemonicValue }) => {
                 title: "Are you sure you want to delete all wallets?",
                 description:
                   "This action cannot be undone. This will permanently delete your wallets and keys from local storage.",
+                content: (
+                  <HStack justifyContent="end" mt={4}>
+                    <Button onClick={() => dialog.close("a")} rounded={"lg"}>
+                      Cancel
+                    </Button>
+                    <Button
+                      rounded={"lg"}
+                      colorScheme="red"
+                      onClick={() => {
+                        handleWalletDeletion("", true);
+                        dialog.close("a");
+                      }}
+                    >
+                      Delete
+                    </Button>
+                  </HStack>
+                ),
               });
             }}
           >
@@ -372,66 +399,130 @@ const WalletGenerator: React.FC<WalletGeneratorProps> = ({ mnemonicValue }) => {
         </HStack>
       </HStack>
       {wallets.wallet.length > 0 &&
-        wallets.wallet.map((val, i) => (
-          <Box key={i} border="1px solid #a8a8a84c" rounded="2xl" mb="4">
-            <HStack justifyContent={"space-between"}>
-              <Text p="6" fontSize={[16, 20, 24, 28]} fontWeight={"bold"}>
-                Wallet {i + 1}
-              </Text>
-              <IconButton
-                aria-label="Delete"
-                variant="ghost"
-                colorScheme="red"
-                mr="4"
-              >
-                <Button onClick={() => handleWalletDeletion(val.publicKey)}>
+        (viewMode === "list" ? (
+          // List view
+          wallets.wallet.map((val, i) => (
+            <Box key={i} border="1px solid #a8a8a84c" rounded="2xl" mb="4">
+              <HStack justifyContent={"space-between"}>
+                <Text p="6" fontSize={[16, 20, 24, 28]} fontWeight={"bold"}>
+                  Wallet {i + 1}
+                </Text>
+                <IconButton
+                  aria-label="Delete"
+                  variant="ghost"
+                  colorScheme="red"
+                  mr="4"
+                  onClick={() => handleWalletDeletion(val.publicKey, false)}
+                >
                   <Trash2 size={18} color="red" />
-                </Button>
-              </IconButton>
-            </HStack>
-            <Stack key={i} bg={`${bgColor}`} rounded={"2xl"} p="6" gap="6">
-              <Stack onClick={() => handleCopy("Public Key")}>
-                <Text fontSize={[10, 14, 18, 22]} fontWeight={"medium"}>
-                  Public Key
-                </Text>
-                <Text fontSize={[4, 8, 12, 16]} fontWeight={"light"} mt="-1">
-                  {val.publicKey}
-                </Text>
-              </Stack>
-              <Stack>
-                <Text fontSize={[10, 14, 18, 22]} fontWeight={"medium"}>
-                  Private Key
-                </Text>
-                <HStack mt={"-3"} justifyContent={"space-between"}>
-                  {visible[walletType]?.[i] ? (
-                    <Text
-                      letterSpacing={"tighter"}
-                      fontSize={[4, 8, 12, 16]}
-                      fontWeight={"light"}
-                    >
-                      {val.privateKey}
-                    </Text>
-                  ) : (
-                    <Text
-                      letterSpacing={"widest"}
-                      fontSize={[4, 8, 12, 16]}
-                      fontWeight={"light"}
-                    >
-                      {val.privateKey.replace(/./g, "•")}
-                    </Text>
-                  )}
-                  <IconButton
-                    aria-label="Toggle private key"
-                    onClick={() => toggleVisibility(i)}
-                    size="sm"
-                    variant="ghost"
+                </IconButton>
+              </HStack>
+              <Stack bg={bgColor} rounded={"2xl"} p="6" gap="6">
+                <Stack onClick={() => handleCopy("Public Key")}>
+                  <Text fontWeight="medium" fontSize={[10, 15, 20, 25]}>
+                    Public Key
+                  </Text>
+                  <Text
+                    fontWeight="light"
+                    mt="-1"
+                    fontSize={[5, 10, 15, 20]}
                   >
-                    {visible[walletType]?.[i] ? <EyeOff /> : <Eye />}
-                  </IconButton>
-                </HStack>
+                    {val.publicKey}
+                  </Text>
+                </Stack>
+                <Stack>
+                  <Text fontWeight="medium" fontSize={[10, 15, 20, 25]}>
+                    Private Key
+                  </Text>
+                  <HStack mt="-1" justifyContent="space-between">
+                    <Text
+                      fontWeight="light"
+                      fontSize={[5, 10, 15, 20]}
+                    >
+                      {visible[walletType]?.[i]
+                        ? val.privateKey
+                        : val.privateKey.replace(/./g, "•")}
+                    </Text>
+                    <IconButton
+                      aria-label="Toggle private key"
+                      onClick={() => toggleVisibility(i)}
+                      size="sm"
+                      variant="ghost"
+                    >
+                      {visible[walletType]?.[i] ? <EyeOff /> : <Eye />}
+                    </IconButton>
+                  </HStack>
+                </Stack>
               </Stack>
-            </Stack>
-          </Box>
+            </Box>
+          ))
+        ) : (
+          // Grid view
+          <SimpleGrid columns={[1, 2, 3]} gap="6">
+            {wallets.wallet.map((val, i) => (
+              <Card.Root
+                key={i}
+                width="100%"
+                border="1px solid #a8a8a84c"
+                rounded="2xl"
+              >
+                <Card.Body gap="4" p="0" rounded="2xl">
+                  <HStack
+                    justifyContent="space-between"
+                    px="4"
+                    py="2"
+                    mt="2"
+                    mb="-1"
+                  >
+                    <Card.Title fontSize={[16, 20, 24, 28]}>
+                      Wallet {i + 1}
+                    </Card.Title>
+                    <IconButton
+                      aria-label="Delete wallet"
+                      onClick={() => handleWalletDeletion(val.publicKey, false)}
+                      variant="ghost"
+                    >
+                      <Trash2 size={18} color="red" />
+                    </IconButton>
+                  </HStack>
+                  <Stack bg={bgColor} px="4" py="4" rounded="xl">
+                    <Stack onClick={() => handleCopy("Public Key")}>
+                      <Text fontWeight="medium" fontSize={[5, 10, 15, 20]}>Public Key</Text>
+                      <Text fontWeight="light" mt="-1" fontSize="sm">
+                        {val.publicKey}
+                      </Text>
+                    </Stack>
+                    <Stack>
+                      <Text fontWeight="medium" fontSize={[5, 10, 15, 20]}>Private Key</Text>
+                      <HStack mt="-1" justifyContent="space-between">
+                        <Text
+                          fontWeight="light"
+                          fontSize="sm"
+                          letterSpacing={"tighter"}
+                          maxWidth="350px"
+                          overflow="hidden"
+                          whiteSpace="nowrap"
+                          textOverflow="ellipsis"
+                        >
+                          {visible[walletType]?.[i]
+                            ? val.privateKey
+                            : val.privateKey.replace(/./g, "•")}
+                        </Text>
+                        <IconButton
+                          aria-label="Toggle private key"
+                          onClick={() => toggleVisibility(i)}
+                          size="sm"
+                          variant="ghost"
+                        >
+                          {visible[walletType]?.[i] ? <EyeOff /> : <Eye />}
+                        </IconButton>
+                      </HStack>
+                    </Stack>
+                  </Stack>
+                </Card.Body>
+              </Card.Root>
+            ))}
+          </SimpleGrid>
         ))}
     </>
   );

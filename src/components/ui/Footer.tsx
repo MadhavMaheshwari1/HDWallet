@@ -9,6 +9,7 @@ const Footer = () => {
     <HStack
       px={7}
       py={10}
+      mt="6"
       align="center"
       fontSize={["sm", "lg", "xl", "xl"]}
       justify="start"
