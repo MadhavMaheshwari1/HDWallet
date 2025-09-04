@@ -22,7 +22,6 @@ const App = () => (
 
 const WalletRoutes = () => {
   const { walletType } = useParams();
-  console.log(walletType)
   if (walletType && allowedWallets.includes(walletType)) {
     return <WalletPage />;
   }

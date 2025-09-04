@@ -3,11 +3,20 @@ import { toChecksumAddress } from "ethereumjs-util";
 import { Keypair } from "@solana/web3.js";
 import { mnemonicToSeedSync } from "bip39";
 import React, { useState, useEffect } from "react";
-import { SimpleGrid, Box, HStack, Text } from "@chakra-ui/react";
+import {
+  SimpleGrid,
+  Box,
+  HStack,
+  Text,
+  IconButton,
+  Stack,
+} from "@chakra-ui/react";
+import { Button, Dialog, Portal, createOverlay } from "@chakra-ui/react";
 import { ChevronDown } from "lucide-react";
-import { motion } from "motion/react";
+import { motion } from "framer-motion";
 import { Copy } from "lucide-react";
-import nacl from "tweetnacl";
+import { Link } from "react-router-dom";
+import { Eye, EyeOff, Trash2 } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import {
   AccordionRoot,
@@ -18,74 +27,143 @@ import {
 
 import { toaster } from "@/components/ui/toaster";
 import { useParams } from "react-router-dom";
+import { useColorModeValue } from "./color-mode";
 
-const WalletGenerator = ({ mnemonicValue }) => {
+interface DialogProps {
+  title: string;
+  description?: string;
+  content?: React.ReactNode;
+}
+
+const chains = ["solana", "ethereum"];
+
+const dialog = createOverlay<DialogProps>((props) => {
+  const { title, description, content, ...rest } = props;
+  return (
+    <Dialog.Root {...rest} closeOnInteractOutside={false} closeOnEscape={false}>
+      <Portal>
+        <Dialog.Backdrop
+          style={{
+            background: "rgba(0,0,0,0.6)",
+            backdropFilter: "blur(2px)",
+            pointerEvents: "auto",
+          }}
+        />
+        <Dialog.Positioner
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            minHeight: "100vh",
+          }}
+        >
+          <Dialog.Content border="1px solid #a8a8a84c">
+            {title && (
+              <Dialog.Header>
+                <Dialog.Title>{title}</Dialog.Title>
+              </Dialog.Header>
+            )}
+            <Dialog.Body spaceY="4">
+              {description && (
+                <Dialog.Description>{description}</Dialog.Description>
+              )}
+              {content}
+            </Dialog.Body>
+            <Dialog.Footer>
+              <HStack justifyContent="end">
+                <Button rounded="lg" onClick={() => dialog.close("a")}>
+                  Cancel
+                </Button>
+                <Button rounded="lg" colorScheme="red">
+                  Delete
+                </Button>
+              </HStack>
+            </Dialog.Footer>
+          </Dialog.Content>
+        </Dialog.Positioner>
+      </Portal>
+    </Dialog.Root>
+  );
+});
+
+interface WalletGeneratorProps {
+  mnemonicValue: string;
+}
+
+const WalletGenerator: React.FC<WalletGeneratorProps> = ({ mnemonicValue }) => {
   const { walletType } = useParams<{ walletType: string }>();
-  if (!walletType) {
-    <Navigate to="/" />;
-  }
+  const [visible, setVisible] = useState<Record<string, boolean[]>>({});
+  const bgColor = useColorModeValue("#e2e2e2b8", "#3b3b3ba0");
+  const bgHoverColor = useColorModeValue("#c7c7c7b8", "#707070a0");
+  const textColor = useColorModeValue("gray.800", "gray.400");
   const storedWallets: WalletsMap = JSON.parse(
     localStorage.getItem("wallets") || "{}"
   );
-
   const [wallets, setWallets] = useState<WalletProvider>(
-    storedWallets[walletType] ?? { mnemonic: "", wallet: [] }
+    storedWallets[walletType ?? "solana"] ?? { mnemonic: "", wallet: [] }
   );
 
-  if (wallets.mnemonic) {
-    mnemonicValue = wallets.mnemonic;
-  }
+  useEffect(() => {
+    const storedWallets: WalletsMap = JSON.parse(
+      localStorage.getItem("wallets") || "{}"
+    );
+    setWallets(
+      storedWallets[walletType ?? "solana"] ?? { mnemonic: "", wallet: [] }
+    );
+  }, [walletType]);
 
-  const [isOpen, setIsOpen] = useState(false);
+  const [Open, setOpen] = useState(false);
 
-  const handleCopy = async () => {
-    if (mnemonicValue) {
-      await navigator.clipboard.writeText(mnemonicValue);
-      toaster.create({
-        title: "Secret phrase copied to clipboard",
-        type: "success",
-        duration: 2000,
-      });
+  useEffect(() => {
+    setVisible((prev) => ({
+      ...prev,
+      [walletType ?? "solana"]: Array(wallets.wallet.length).fill(false),
+    }));
+  }, [walletType, wallets.wallet.length]);
+
+  const handleWalletGeneration = () => {
+    let newWallet: WalletAccount;
+
+    if (walletType === "solana") {
+      const seed = mnemonicToSeedSync(mnemonicValue).slice(0, 32);
+      const keypair = Keypair.fromSeed(seed);
+      newWallet = {
+        publicKey: keypair.publicKey.toBase58(),
+        privateKey: Buffer.from(keypair.secretKey).toString("hex"),
+      };
+    } else if (walletType === "ethereum") {
+      const seed = mnemonicToSeedSync(mnemonicValue);
+      const hdWallet = hdkey.fromMasterSeed(seed);
+      const key = hdWallet.derivePath("m/44'/60'/0'/0/0").getWallet();
+      newWallet = {
+        publicKey: toChecksumAddress(key.getAddressString()),
+        privateKey: key.getPrivateKeyString(),
+      };
     }
+    else{
+      return;
+    }
+
+    setWallets((prev) => ({
+      mnemonic: mnemonicValue,
+      wallet: [...prev.wallet, newWallet],
+    }));
+
+    const storedWallets: WalletsMap = JSON.parse(
+      localStorage.getItem("wallets") || "{}"
+    );
+
+    if (storedWallets[walletType??"solana"]) {
+      storedWallets[walletType??"solana"].wallet.push(newWallet);
+    } else {
+      storedWallets[walletType??"solana"] = {
+        mnemonic: mnemonicValue,
+        wallet: [newWallet],
+      };
+    }
+
+    localStorage.setItem("wallets", JSON.stringify(storedWallets));
   };
-
-const handleWalletGeneration = () => {
-  let newWallet: WalletAccount;
-
-  if (walletType === "solana") {
-    const seed = mnemonicToSeedSync(mnemonicValue).slice(0, 32);
-    const keypair = Keypair.fromSeed(seed);
-    newWallet = {
-      publicKey: keypair.publicKey.toBase58(),
-      privateKey: Buffer.from(keypair.secretKey).toString("hex"),
-    };
-  } else if (walletType === "ethereum") {
-    const seed = mnemonicToSeedSync(mnemonicValue);
-    const hdWallet = hdkey.fromMasterSeed(seed);
-    const key = hdWallet.derivePath("m/44'/60'/0'/0/0").getWallet();
-    newWallet = {
-      publicKey: toChecksumAddress(key.getAddressString()),
-      privateKey: key.getPrivateKeyString(),
-    };
-  }
-
-  setWallets((prev) => ({
-    mnemonic: mnemonicValue,
-    wallet: [...prev.wallet, newWallet],
-  }));
-
-  const storedWallets: WalletsMap = JSON.parse(
-    localStorage.getItem("wallets") || "{}"
-  );
-
-  if (storedWallets[walletType]) {
-    storedWallets[walletType].wallet.push(newWallet);
-  } else {
-    storedWallets[walletType] = { mnemonic: mnemonicValue, wallet: [newWallet] };
-  }
-
-  localStorage.setItem("wallets", JSON.stringify(storedWallets));
-};
 
   useEffect(() => {
     if (!wallets.mnemonic) {
@@ -93,13 +171,41 @@ const handleWalletGeneration = () => {
     }
   }, []);
 
+  if (!walletType) {
+    return <Navigate to="/" />;
+  }
+
+  if (wallets.mnemonic) {
+    mnemonicValue = wallets.mnemonic;
+  }
+
+  const handleCopy = async (val: string) => {
+    if (mnemonicValue) {
+      await navigator.clipboard.writeText(mnemonicValue);
+      toaster.create({
+        title: `${val} copied to clipboard`,
+        type: "success",
+        duration: 2000,
+        closable: true,
+      });
+    }
+  };
+
+  const toggleVisibility = (index: number) => {
+    setVisible((prev) => ({
+      ...prev,
+      [walletType]: prev[walletType].map((v, i) => (i === index ? !v : v)),
+    }));
+  };
+
+
   return (
     <>
       <AccordionRoot collapsible>
         <AccordionItem value="secret-phrase">
-          <Box border="1px solid #ffffff2d" borderRadius="lg" p="6">
+          <Box border={`1px solid #a8a8a84c`} borderRadius="lg" p="6">
             <AccordionItemTrigger
-              onClick={() => setIsOpen((prev) => !prev)}
+              onClick={() => setOpen((prev) => !prev)}
               style={{
                 display: "flex",
                 justifyContent: "space-between",
@@ -118,7 +224,7 @@ const handleWalletGeneration = () => {
                 </Text>
               </HStack>
             </AccordionItemTrigger>
-            {isOpen && (
+            {Open && (
               <motion.div
                 initial={{ y: -50, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
@@ -128,7 +234,7 @@ const handleWalletGeneration = () => {
                   <Box
                     pb={4}
                     cursor="pointer"
-                    onClick={handleCopy}
+                    onClick={() => handleCopy("Secret Phrase")}
                     borderRadius="md"
                     p={2}
                     pl={0.5}
@@ -139,15 +245,14 @@ const handleWalletGeneration = () => {
                         .map((word: string, index: number) => (
                           <Box
                             _hover={{
-                              bg: "gray.800",
+                              bg: `${bgHoverColor}`,
                               transition: "background 0.5s ease",
                             }}
                             key={index}
                             borderWidth="1px"
                             rounded="md"
                             fontFamily="monospace"
-                            bg="#2626265b"
-                            color="white"
+                            bg={`${bgColor}`}
                             textAlign="left"
                             py={3}
                             px={4}
@@ -163,13 +268,13 @@ const handleWalletGeneration = () => {
                     ml="1"
                     cursor="pointer"
                     fontSize="md"
-                    color="gray.400"
+                    color={`${textColor}`}
                     fontWeight="medium"
                     display="flex"
                     gap="2"
-                    onClick={handleCopy}
+                    onClick={() => handleCopy("Secret Phrase")}
                     _hover={{
-                      color: "#f1ededee",
+                      color: "#565656ee",
                       transition: "color 0.7s ease-in-out",
                     }}
                   >
@@ -181,6 +286,109 @@ const handleWalletGeneration = () => {
           </Box>
         </AccordionItem>
       </AccordionRoot>
+      <HStack w={"100%"} justifyContent={"space-between"} my={"8"}>
+        <HStack
+          border="1px solid #a8a8a84c"
+          rounded="lg"
+          bg={bgColor}
+          px="6"
+          py="4"
+        >
+          {chains.map((val, ind) => (
+            <Link
+              key={ind}
+              to={`/${val}`}
+              style={{
+                fontWeight: val === walletType ? "bold" : "normal",
+                fontSize: val === walletType ? "1.5rem" : "1rem",
+                textDecoration: val === walletType ? "underline" : "none",
+                cursor: "pointer",
+              }}
+            >
+              {val.charAt(0).toUpperCase() + val.slice(1)}
+            </Link>
+          ))}
+        </HStack>
+
+        <HStack>
+          <Button>Add wallet</Button>
+          <Button
+            bg={"red.700"}
+            color={"white"}
+            _hover={{ bg: "red.600" }}
+            onClick={() => {
+              dialog.open("a", {
+                title: "Are you sure you want to delete all wallets?",
+                description:
+                  "This action cannot be undone. This will permanently delete your wallets and keys from local storage.",
+              });
+            }}
+          >
+            Clear wallets
+          </Button>
+          <dialog.Viewport />
+        </HStack>
+      </HStack>
+      {wallets.wallet.length > 0 &&
+        wallets.wallet.map((val, i) => (
+          <Box key={i} border="1px solid #a8a8a84c" rounded="2xl" mb="4">
+            <HStack justifyContent={"space-between"}>
+              <Text p="6" fontSize={[16, 20, 24, 28]} fontWeight={"bold"}>
+                Wallet {i + 1}
+              </Text>
+              <IconButton
+                aria-label="Delete"
+                variant="ghost"
+                colorScheme="red"
+                mr="4"
+              >
+                <Trash2 size={18} color="red" />
+              </IconButton>
+            </HStack>
+            <Stack key={i} bg={`${bgColor}`} rounded={"2xl"} p="6" gap="6">
+              <Stack onClick={() => handleCopy("Public Key")}>
+                <Text fontSize={[10, 14, 18, 22]} fontWeight={"medium"}>
+                  Public Key
+                </Text>
+                <Text fontSize={[4, 8, 12, 16]} fontWeight={"light"} mt="-1">
+                  {val.publicKey}
+                </Text>
+              </Stack>
+              <Stack>
+                <Text fontSize={[10, 14, 18, 22]} fontWeight={"medium"}>
+                  Private Key
+                </Text>
+                <HStack mt={"-3"} justifyContent={"space-between"}>
+                  {visible[walletType]?.[i] ? (
+                    <Text
+                      letterSpacing={"tighter"}
+                      fontSize={[4, 8, 12, 16]}
+                      fontWeight={"light"}
+                    >
+                      {val.privateKey}
+                    </Text>
+                  ) : (
+                    <Text
+                      letterSpacing={"widest"}
+                      fontSize={[4, 8, 12, 16]}
+                      fontWeight={"light"}
+                    >
+                      {val.privateKey.replace(/./g, "•")}
+                    </Text>
+                  )}
+                  <IconButton
+                    aria-label="Toggle private key"
+                    onClick={() => toggleVisibility(i)}
+                    size="sm"
+                    variant="ghost"
+                  >
+                    {visible[walletType]?.[i] ? <EyeOff /> : <Eye />}
+                  </IconButton>
+                </HStack>
+              </Stack>
+            </Stack>
+          </Box>
+        ))}
     </>
   );
 };

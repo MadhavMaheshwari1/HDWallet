@@ -8,36 +8,34 @@ import { useParams } from "react-router-dom";
 import { Navigate } from "react-router-dom";
 
 const WalletPage = () => {
-  const mnemonicInputRef = useRef<HTMLInputElement | null>(null);
-  const { walletType } = useParams<{ walletType: string }>();
   const wallets: WalletsMap = JSON.parse(
     localStorage.getItem("wallets") || "{}"
   );
-
-  if (!walletType) {
-    <Navigate to="/" />;
-  }
-
-  const wallet = wallets[walletType].mnemonic;
-
-  const [walletGenerated, setWalletGenerated] = useState(
-    wallet.length !== 0 ? true : false
-  );
   const [mnemonic, setMnemonic] = useState("");
-
+  const { walletType } = useParams<{ walletType: string }>();
+  const wallet = wallets[walletType ?? "solana"]?.mnemonic;
+  const [walletGenerated, setWalletGenerated] = useState(
+    wallet && wallet.length > 0 ? true : false
+  );
+  const mnemonicInputRef = useRef<HTMLInputElement | null>(null);
   useEffect(() => {
     if (walletType && !walletGenerated) {
       toaster.create({
         id: "wallet-toast",
-        title: `${walletType} Wallet selected`,
+        title: `${
+          walletType.charAt(0).toUpperCase() + walletType.slice(1)
+        } Wallet selected`,
         description: "Please generate a wallet to continue.",
         closable: true,
         type: "success",
       });
       window.history.replaceState({}, document.title);
     }
-  }, [walletType]);
+  }, [walletType, walletGenerated]);
 
+  if (!walletType) {
+    return <Navigate to="/" />;
+  }
   function mnemonicHandler(mnemonic: string): void {
     const cleanedMnemonic = mnemonic.trim();
 
@@ -64,7 +62,7 @@ const WalletPage = () => {
   }
 
   return (
-    <Box p={6}>
+    <Box px={6}>
       {walletGenerated ? (
         <WalletGenerator mnemonicValue={mnemonic} />
       ) : (

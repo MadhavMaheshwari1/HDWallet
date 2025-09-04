@@ -12,7 +12,7 @@
   "dependencies": {
     "@ark-ui/react": "^5.22.0",
     "@chakra-ui/icons": "^2.2.4",
-    "@chakra-ui/react": "^3.25.0",
+    "@chakra-ui/react": "^3.26.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@scure/bip39": "^2.0.0",
