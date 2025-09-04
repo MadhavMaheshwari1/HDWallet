@@ -1,6 +1,6 @@
 "use client";
 
-import HeroPage from "./Pages/HeroPage";
+import HeroPage from "../app/hero/page";
 
 export default function Home() {
   return <HeroPage />;

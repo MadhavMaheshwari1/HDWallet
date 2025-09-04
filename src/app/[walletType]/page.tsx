@@ -1,7 +1,7 @@
 "use client";
 
 import { redirect } from "next/navigation";
-import WalletPage from "../Pages/WalletPage";
+import WalletPage from "../wallet/page";
 import React from "react";
 
 const allowedWallets = ["solana", "ethereum"];
