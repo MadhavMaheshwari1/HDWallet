@@ -1,9 +1,15 @@
-"use client";
 
 import { Provider } from "../components/ui/provider";
 import { Flex, Spacer } from "@chakra-ui/react";
 import Navbar from "../components/ui/Navbar";
 import Footer from "../components/ui/Footer";
+
+// eslint-disable-next-line react-refresh/only-export-components
+export const metadata = {
+  title: "Nidhi Wallet",
+  description: "Your multi-blockchain wallet app",
+  icon: "/Ethereum.png",
+};
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
