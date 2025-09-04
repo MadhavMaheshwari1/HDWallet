@@ -1,23 +1,26 @@
-export {};
+export {}; // ensure this is a module
+
 declare global {
-  // Extend window globals for browser Buffer + process
+interface GlobalThis {
+    Buffer: typeof import("buffer").Buffer;
+    process: typeof import("process");
+  }
+
   interface Window {
     Buffer: typeof import("buffer").Buffer;
     process: typeof import("process");
   }
 
-  // A single account (inside the wallet array)
+  // Wallet types
   interface WalletAccount {
     publicKey: string;
     privateKey: string;
   }
 
-  // A provider like Solana/Ethereum
   interface WalletProvider {
     mnemonic: string;
     wallet: WalletAccount[];
   }
 
-  // Map of all wallets, flexible keys
   type WalletsMap = Record<string, WalletProvider>;
 }

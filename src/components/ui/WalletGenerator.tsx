@@ -1,8 +1,11 @@
+"use client";
+
 import { hdkey } from "ethereumjs-wallet";
 import { toChecksumAddress } from "ethereumjs-util";
 import { Keypair } from "@solana/web3.js";
 import { mnemonicToSeedSync } from "bip39";
 import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import {
   SimpleGrid,
   Box,
@@ -10,14 +13,12 @@ import {
   Text,
   IconButton,
   Stack,
+  Button,
 } from "@chakra-ui/react";
-import { Button, Dialog, Portal, createOverlay } from "@chakra-ui/react";
-import { ChevronDown } from "lucide-react";
-import { motion } from "framer-motion";
-import { Copy } from "lucide-react";
-import { Link } from "react-router-dom";
-import { Eye, EyeOff, Trash2 } from "lucide-react";
-import { Navigate } from "react-router-dom";
+import { Dialog, Portal, createOverlay } from "@chakra-ui/react";
+import { ChevronDown, Copy, Eye, EyeOff, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { useRouter, useParams } from "next/navigation";
 import {
   AccordionRoot,
   AccordionItem,
@@ -26,7 +27,6 @@ import {
 } from "@ark-ui/react";
 
 import { toaster } from "@/components/ui/toaster";
-import { useParams } from "react-router-dom";
 import { useColorModeValue } from "./color-mode";
 
 interface DialogProps {
@@ -91,22 +91,24 @@ interface WalletGeneratorProps {
 }
 
 const WalletGenerator: React.FC<WalletGeneratorProps> = ({ mnemonicValue }) => {
-  const { walletType } = useParams<{ walletType: string }>();
+  const params = useParams();
+  const router = useRouter();
+  const walletType = typeof params.walletType === "string" ? params.walletType : "";
   const [visible, setVisible] = useState<Record<string, boolean[]>>({});
   const bgColor = useColorModeValue("#e2e2e2b8", "#3b3b3ba0");
   const bgHoverColor = useColorModeValue("#c7c7c7b8", "#707070a0");
   const textColor = useColorModeValue("gray.800", "gray.400");
-  const storedWallets: WalletsMap = JSON.parse(
-    localStorage.getItem("wallets") || "{}"
-  );
+  const storedWallets: WalletsMap = typeof window !== "undefined"
+    ? JSON.parse(localStorage.getItem("wallets") || "{}")
+    : {};
   const [wallets, setWallets] = useState<WalletProvider>(
     storedWallets[walletType ?? "solana"] ?? { mnemonic: "", wallet: [] }
   );
 
   useEffect(() => {
-    const storedWallets: WalletsMap = JSON.parse(
-      localStorage.getItem("wallets") || "{}"
-    );
+    const storedWallets: WalletsMap = typeof window !== "undefined"
+      ? JSON.parse(localStorage.getItem("wallets") || "{}")
+      : {};
     setWallets(
       storedWallets[walletType ?? "solana"] ?? { mnemonic: "", wallet: [] }
     );
@@ -139,8 +141,7 @@ const WalletGenerator: React.FC<WalletGeneratorProps> = ({ mnemonicValue }) => {
         publicKey: toChecksumAddress(key.getAddressString()),
         privateKey: key.getPrivateKeyString(),
       };
-    }
-    else{
+    } else {
       return;
     }
 
@@ -149,14 +150,14 @@ const WalletGenerator: React.FC<WalletGeneratorProps> = ({ mnemonicValue }) => {
       wallet: [...prev.wallet, newWallet],
     }));
 
-    const storedWallets: WalletsMap = JSON.parse(
-      localStorage.getItem("wallets") || "{}"
-    );
+    const storedWallets: WalletsMap = typeof window !== "undefined"
+      ? JSON.parse(localStorage.getItem("wallets") || "{}")
+      : {};
 
-    if (storedWallets[walletType??"solana"]) {
-      storedWallets[walletType??"solana"].wallet.push(newWallet);
+    if (storedWallets[walletType ?? "solana"]) {
+      storedWallets[walletType ?? "solana"].wallet.push(newWallet);
     } else {
-      storedWallets[walletType??"solana"] = {
+      storedWallets[walletType ?? "solana"] = {
         mnemonic: mnemonicValue,
         wallet: [newWallet],
       };
@@ -166,22 +167,24 @@ const WalletGenerator: React.FC<WalletGeneratorProps> = ({ mnemonicValue }) => {
   };
 
   useEffect(() => {
+    if (!walletType || !["solana", "ethereum"].includes(walletType)) {
+      router.replace("/");
+      return;
+    }
     if (!wallets.mnemonic) {
       handleWalletGeneration();
     }
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [walletType]);
 
-  if (!walletType) {
-    return <Navigate to="/" />;
-  }
-
+  let displayMnemonic = mnemonicValue;
   if (wallets.mnemonic) {
-    mnemonicValue = wallets.mnemonic;
+    displayMnemonic = wallets.mnemonic;
   }
 
   const handleCopy = async (val: string) => {
-    if (mnemonicValue) {
-      await navigator.clipboard.writeText(mnemonicValue);
+    if (displayMnemonic) {
+      await navigator.clipboard.writeText(displayMnemonic);
       toaster.create({
         title: `${val} copied to clipboard`,
         type: "success",
@@ -197,7 +200,6 @@ const WalletGenerator: React.FC<WalletGeneratorProps> = ({ mnemonicValue }) => {
       [walletType]: prev[walletType].map((v, i) => (i === index ? !v : v)),
     }));
   };
-
 
   return (
     <>
@@ -240,7 +242,7 @@ const WalletGenerator: React.FC<WalletGeneratorProps> = ({ mnemonicValue }) => {
                     pl={0.5}
                   >
                     <SimpleGrid columns={[2, 3, 4]} gap="2">
-                      {mnemonicValue
+                      {displayMnemonic
                         .split(" ")
                         .map((word: string, index: number) => (
                           <Box
@@ -297,7 +299,7 @@ const WalletGenerator: React.FC<WalletGeneratorProps> = ({ mnemonicValue }) => {
           {chains.map((val, ind) => (
             <Link
               key={ind}
-              to={`/${val}`}
+              href={`/${val}`}
               style={{
                 fontWeight: val === walletType ? "bold" : "normal",
                 fontSize: val === walletType ? "1.5rem" : "1rem",

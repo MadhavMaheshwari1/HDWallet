@@ -1,41 +1,46 @@
 "use client";
+
 import { useEffect, useState, useRef } from "react";
 import { toaster, Toaster } from "@/components/ui/toaster";
 import { Box, Stack, Text, Input, HStack, Button } from "@chakra-ui/react";
-import WalletGenerator from "@/components/ui/WalletGenerator";
+import WalletGenerator from "../../components/ui/WalletGenerator";
 import { validateMnemonic, generateMnemonic } from "bip39";
-import { useParams } from "react-router-dom";
-import { Navigate } from "react-router-dom";
+import { useRouter, useParams } from "next/navigation";
+
+const allowedWallets = ["solana", "ethereum"];
 
 const WalletPage = () => {
-  const wallets: WalletsMap = JSON.parse(
-    localStorage.getItem("wallets") || "{}"
-  );
+  const wallets: WalletsMap = typeof window !== "undefined"
+    ? JSON.parse(localStorage.getItem("wallets") || "{}")
+    : {};
   const [mnemonic, setMnemonic] = useState("");
-  const { walletType } = useParams<{ walletType: string }>();
+  const params = useParams();
+  const walletType = typeof params.walletType === "string" ? params.walletType : "";
   const wallet = wallets[walletType ?? "solana"]?.mnemonic;
   const [walletGenerated, setWalletGenerated] = useState(
     wallet && wallet.length > 0 ? true : false
   );
   const mnemonicInputRef = useRef<HTMLInputElement | null>(null);
+  const router = useRouter();
+
   useEffect(() => {
+    if (!walletType || !allowedWallets.includes(walletType)) {
+      router.replace("/");
+      return;
+    }
     if (walletType && !walletGenerated) {
       toaster.create({
         id: "wallet-toast",
-        title: `${
-          walletType.charAt(0).toUpperCase() + walletType.slice(1)
-        } Wallet selected`,
+        title: `${walletType.charAt(0).toUpperCase() + walletType.slice(1)} Wallet selected`,
         description: "Please generate a wallet to continue.",
         closable: true,
         type: "success",
       });
       window.history.replaceState({}, document.title);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [walletType, walletGenerated]);
 
-  if (!walletType) {
-    return <Navigate to="/" />;
-  }
   function mnemonicHandler(mnemonic: string): void {
     const cleanedMnemonic = mnemonic.trim();
 

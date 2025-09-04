@@ -1,29 +1,32 @@
+"use client";
+
 import { Stack, Text, Button, HStack } from "@chakra-ui/react";
-import { Link} from "react-router-dom";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { useColorModeValue } from "@/components/ui/color-mode";
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 
 const MotionStack = motion.create(Stack);
 
 const HeroPage = () => {
   const themeColor = useColorModeValue("gray.800", "gray.300");
-  const wallets: WalletsMap = JSON.parse(
-    localStorage.getItem("wallets") || "{}"
-  );
+  const wallets: WalletsMap = typeof window !== "undefined"
+    ? JSON.parse(localStorage.getItem("wallets") || "{}")
+    : {};
 
-  const navigate = useNavigate(); 
+  const router = useRouter();
 
   useEffect(() => {
     if (Object.keys(wallets).length !== 0) {
       Object.keys(wallets).forEach((key) => {
         if (wallets[key].mnemonic.length !== 0) {
           console.log("HI", key);
-          navigate(`/${key}`);
+          router.push(`/${key}`);
         }
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -47,8 +50,9 @@ const HeroPage = () => {
       </Text>
 
       <HStack mt={[1, 2, 2]}>
-        <Link to="/solana">
+        <Link href="/solana" passHref>
           <Button
+            as="a"
             w="8"
             fontSize={["sm", "sm", "md", "md"]}
             py={[4, 4, 6, 6]}
@@ -60,8 +64,9 @@ const HeroPage = () => {
           </Button>
         </Link>
 
-        <Link to="/ethereum">
+        <Link href="/ethereum" passHref>
           <Button
+            as="a"
             w="8"
             fontSize={["sm", "sm", "md", "md"]}
             py={[4, 4, 6, 6]}
