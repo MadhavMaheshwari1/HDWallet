@@ -5,6 +5,7 @@ import { toChecksumAddress } from "ethereumjs-util";
 import { Keypair } from "@solana/web3.js";
 import { mnemonicToSeedSync } from "bip39";
 import React, { useState, useEffect } from "react";
+import * as ed25519 from "ed25519-hd-key";
 import { motion } from "framer-motion";
 import {
   SimpleGrid,
@@ -93,22 +94,25 @@ interface WalletGeneratorProps {
 const WalletGenerator: React.FC<WalletGeneratorProps> = ({ mnemonicValue }) => {
   const params = useParams();
   const router = useRouter();
-  const walletType = typeof params.walletType === "string" ? params.walletType : "";
+  const walletType =
+    typeof params.walletType === "string" ? params.walletType : "";
   const [visible, setVisible] = useState<Record<string, boolean[]>>({});
   const bgColor = useColorModeValue("#e2e2e2b8", "#3b3b3ba0");
   const bgHoverColor = useColorModeValue("#c7c7c7b8", "#707070a0");
   const textColor = useColorModeValue("gray.800", "gray.400");
-  const storedWallets: WalletsMap = typeof window !== "undefined"
-    ? JSON.parse(localStorage.getItem("wallets") || "{}")
-    : {};
+  const storedWallets: WalletsMap =
+    typeof window !== "undefined"
+      ? JSON.parse(localStorage.getItem("wallets") || "{}")
+      : {};
   const [wallets, setWallets] = useState<WalletProvider>(
     storedWallets[walletType ?? "solana"] ?? { mnemonic: "", wallet: [] }
   );
 
   useEffect(() => {
-    const storedWallets: WalletsMap = typeof window !== "undefined"
-      ? JSON.parse(localStorage.getItem("wallets") || "{}")
-      : {};
+    const storedWallets: WalletsMap =
+      typeof window !== "undefined"
+        ? JSON.parse(localStorage.getItem("wallets") || "{}")
+        : {};
     setWallets(
       storedWallets[walletType ?? "solana"] ?? { mnemonic: "", wallet: [] }
     );
@@ -125,10 +129,15 @@ const WalletGenerator: React.FC<WalletGeneratorProps> = ({ mnemonicValue }) => {
 
   const handleWalletGeneration = () => {
     let newWallet: WalletAccount;
+    const index = wallets.wallet.length;
 
     if (walletType === "solana") {
-      const seed = mnemonicToSeedSync(mnemonicValue).slice(0, 32);
-      const keypair = Keypair.fromSeed(seed);
+      const seed = mnemonicToSeedSync(mnemonicValue);
+      const derivedSeed = ed25519.derivePath(
+        `m/44'/501'/0'/0'/${index}'`,
+        seed.toString("hex")
+      ).key;
+      const keypair = Keypair.fromSeed(derivedSeed);
       newWallet = {
         publicKey: keypair.publicKey.toBase58(),
         privateKey: Buffer.from(keypair.secretKey).toString("hex"),
@@ -136,7 +145,7 @@ const WalletGenerator: React.FC<WalletGeneratorProps> = ({ mnemonicValue }) => {
     } else if (walletType === "ethereum") {
       const seed = mnemonicToSeedSync(mnemonicValue);
       const hdWallet = hdkey.fromMasterSeed(seed);
-      const key = hdWallet.derivePath("m/44'/60'/0'/0/0").getWallet();
+      const key = hdWallet.derivePath(`m/44'/60'/0'/0/${index}`).getWallet();
       newWallet = {
         publicKey: toChecksumAddress(key.getAddressString()),
         privateKey: key.getPrivateKeyString(),
@@ -145,14 +154,10 @@ const WalletGenerator: React.FC<WalletGeneratorProps> = ({ mnemonicValue }) => {
       return;
     }
 
-    setWallets((prev) => ({
-      mnemonic: mnemonicValue,
-      wallet: [...prev.wallet, newWallet],
-    }));
-
-    const storedWallets: WalletsMap = typeof window !== "undefined"
-      ? JSON.parse(localStorage.getItem("wallets") || "{}")
-      : {};
+    const storedWallets: WalletsMap =
+      typeof window !== "undefined"
+        ? JSON.parse(localStorage.getItem("wallets") || "{}")
+        : {};
 
     if (storedWallets[walletType ?? "solana"]) {
       storedWallets[walletType ?? "solana"].wallet.push(newWallet);
@@ -162,8 +167,37 @@ const WalletGenerator: React.FC<WalletGeneratorProps> = ({ mnemonicValue }) => {
         wallet: [newWallet],
       };
     }
+    setWallets((prev) => ({
+      mnemonic: mnemonicValue,
+      wallet: [...prev.wallet, newWallet],
+    }));
 
     localStorage.setItem("wallets", JSON.stringify(storedWallets));
+  };
+
+  const handleWalletDeletion = (publicKey: string) => {
+    const currWallet = wallets.wallet.filter(
+      (val) => val.publicKey !== publicKey
+    );
+    setWallets({ mnemonic: mnemonicValue, wallet: currWallet });
+
+    if (typeof window !== "undefined") {
+      const storedWallets: WalletsMap = JSON.parse(
+        localStorage.getItem("wallets") || "{}"
+      );
+
+      if (currWallet.length > 0) {
+        storedWallets[walletType ?? "solana"] = {
+          mnemonic: mnemonicValue,
+          wallet: currWallet,
+        };
+      } else {
+        delete storedWallets[walletType ?? "solana"];
+        router.push("/");
+      }
+
+      localStorage.setItem("wallets", JSON.stringify(storedWallets));
+    }
   };
 
   useEffect(() => {
@@ -171,9 +205,15 @@ const WalletGenerator: React.FC<WalletGeneratorProps> = ({ mnemonicValue }) => {
       router.replace("/");
       return;
     }
-    if (!wallets.mnemonic) {
-      handleWalletGeneration();
-    }
+
+    const storedWallets: WalletsMap =
+    typeof window !== "undefined"
+      ? JSON.parse(localStorage.getItem("wallets") || "{}")
+      : {};
+
+    if (!storedWallets[walletType ?? "solana"]?.wallet?.length) {
+    handleWalletGeneration();
+  }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [walletType]);
 
@@ -313,7 +353,7 @@ const WalletGenerator: React.FC<WalletGeneratorProps> = ({ mnemonicValue }) => {
         </HStack>
 
         <HStack>
-          <Button>Add wallet</Button>
+          <Button onClick={handleWalletGeneration}>Add wallet</Button>
           <Button
             bg={"red.700"}
             color={"white"}
@@ -344,7 +384,9 @@ const WalletGenerator: React.FC<WalletGeneratorProps> = ({ mnemonicValue }) => {
                 colorScheme="red"
                 mr="4"
               >
-                <Trash2 size={18} color="red" />
+                <Button onClick={() => handleWalletDeletion(val.publicKey)}>
+                  <Trash2 size={18} color="red" />
+                </Button>
               </IconButton>
             </HStack>
             <Stack key={i} bg={`${bgColor}`} rounded={"2xl"} p="6" gap="6">
