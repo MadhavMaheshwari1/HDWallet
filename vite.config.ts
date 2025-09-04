@@ -30,25 +30,16 @@ export default defineConfig({
     tsconfigPaths(),
     customPlugin,
     nodePolyfills({
-      include: ["buffer", "process"], // only polyfill what you use
+      include: ["buffer", "process"],
       protocolImports: true,
     }),
-    {
-      // 🔑 inject Buffer globally at runtime
-      name: "buffer-shim",
-      enforce: "post",
-      transformIndexHtml(html) {
-        return html.replace(
-          "</head>",
-          `<script type="module">
-             import { Buffer } from 'buffer';
-             window.Buffer = Buffer;
-           </script></head>`
-        );
-      },
-    },
   ],
   base: "/",
+  resolve: {
+    alias: {
+      buffer: "buffer/",
+    },
+  },
   optimizeDeps: {
     esbuildOptions: {
       define: {
@@ -62,5 +53,8 @@ export default defineConfig({
         NodeModulesPolyfillPlugin(),
       ],
     },
+  },
+  define: {
+    "globalThis.Buffer": "require('buffer').Buffer",
   },
 });
