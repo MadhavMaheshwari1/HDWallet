@@ -5,9 +5,6 @@ import { NodeGlobalsPolyfillPlugin } from "@esbuild-plugins/node-globals-polyfil
 import { NodeModulesPolyfillPlugin } from "@esbuild-plugins/node-modules-polyfill";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
 
-// ✅ ESM import for Buffer polyfill
-import { Buffer } from "buffer";
-
 const customPlugin: Plugin = {
   name: "custom-plugin",
   resolveId(source) {
